@@ -56,31 +56,33 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
 def render_image():
     width = 192
     height = 108
-    center_x = -0.5
+    width, height = height, width
+    center_x = -1.25
     center_y = 0
-    zoom = -1.5
-    spot_x = -0.5
-    spot_y = 0
-    spot_zoom = 2
-    iterations = 1000
-    samples = BATCH_SIZE
+    zoom = 0
+    spot_x = -1
+    spot_y = 1
+    spot_zoom = -0.5
+    iterations = 2000
+    samples = BATCH_SIZE * 16
     im = iterate_parallel(
         width, height,
         center_x, center_y, zoom,
         spot_x, spot_y, spot_zoom,
         iterations, samples,
     )
+    im.dump("out.dump")
     im /= im.max()
-    im = minimum(2 * im, 1)
+    im *= 1.5
+    im = tanh(exp(im) - 1)
 
+    im = im.swapaxes(0, 1)
     imshow(im, interpolation="none", cmap="gray")
     show()
     toimage(im).save("out.png")
 
 
-if __name__ == '__main__':
-    print "Using {} cores to render a Buddhabrot...".format(cpu_count())
-
+def render_animation():
     width = 640
     height = 480
     center_x = -0.25
@@ -110,4 +112,9 @@ if __name__ == '__main__':
         im *= normalizer
         im = minimum(im, 1)
         toimage(im).save(filename)
+        # TODO: Dump the raw datat too.
         print "Frame %03d done." % n
+
+if __name__ == '__main__':
+    print "Using {} cores to render a Buddhabrot...".format(cpu_count())
+    render_image()

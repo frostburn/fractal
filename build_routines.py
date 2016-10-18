@@ -90,6 +90,9 @@ ffibuilder.set_source(
                         else {
                             *blue += 1;
                         }
+                        *red += 0.3 * ((k + 1) % 5);
+                        *green += 0.1 * (k % 7);
+                        *blue += 0.2 * (k % 11);
                     }
                 }
             }
