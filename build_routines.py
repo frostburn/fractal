@@ -49,10 +49,9 @@ ffibuilder.set_source(
     int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, size_t iterations, size_t samples) {
         zoom = pow(2, zoom) * height;
         spot_zoom = pow(2, -spot_zoom);
-        for (size_t i = 0; i < width * height; i++) {
+        for (size_t i = 0; i < width * height * 3; i++) {
             out[i] = 0;
         }
-
 
         double* trajectory = malloc(sizeof(double) * 2 * iterations);
         for (size_t j = 0; j < samples; j++) {
@@ -79,7 +78,18 @@ ffibuilder.set_source(
                     double index_x = (x_ - center_x) * zoom + width  * 0.5;
                     double index_y = (y  - center_y) * zoom + height * 0.5;
                     if (index_x >= 0 && index_x < width && index_y >= 0 && index_y < height) {
-                        out[(int)index_x + ((int)index_y) * width]++;
+                        double *red   = out + 0 + 3 * ((int)index_x + ((int)index_y) * width);
+                        double *green = out + 1 + 3 * ((int)index_x + ((int)index_y) * width);
+                        double *blue  = out + 2 + 3 * ((int)index_x + ((int)index_y) * width);
+                        if (k % 3 == 0) {
+                            *red += 1;
+                        }
+                        else if (k % 3 == 1) {
+                            *green += 1;
+                        }
+                        else {
+                            *blue += 1;
+                        }
                     }
                 }
             }
