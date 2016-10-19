@@ -7,7 +7,7 @@ from scipy.misc import imsave, toimage
 from _routines import ffi, lib
 
 
-BATCH_SIZE = 1000000
+BATCH_SIZE = 1000000 * 12
 
 
 def iterate(args):
@@ -30,7 +30,7 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
             print "Terminating..."
             pool.close()
             pool.join()
-            exit()
+            return im
         ims = pool.map(iterate, zip(
             list(arange(pool_size) + batch_num * pool_size),
             [width] * pool_size,
@@ -54,17 +54,17 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
 
 
 def render_image():
-    width = 192
-    height = 108
+    width = 192 * 10
+    height = 108 * 10
     width, height = height, width
-    center_x = -1.25
+    center_x = -1.354
     center_y = 0
-    zoom = 0
-    spot_x = -1
-    spot_y = 1
-    spot_zoom = -0.5
-    iterations = 2000
-    samples = BATCH_SIZE * 16
+    zoom = 4
+    spot_x = -1.33
+    spot_y = 0
+    spot_zoom = 3.4
+    iterations = 5000
+    samples = BATCH_SIZE * 16 * 90
     im = iterate_parallel(
         width, height,
         center_x, center_y, zoom,
@@ -73,13 +73,13 @@ def render_image():
     )
     im.dump("out.dump")
     im /= im.max()
-    im *= 1.5
+    im *= 4
     im = tanh(exp(im) - 1)
 
     im = im.swapaxes(0, 1)
     imshow(im, interpolation="none", cmap="gray")
     show()
-    toimage(im).save("out.png")
+    toimage(im).save("out.tiff")
 
 
 def render_animation():
