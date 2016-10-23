@@ -5,7 +5,7 @@ ffibuilder = FFI()
 ffibuilder.cdef(
     "void srand(unsigned int seed);"
     "int mandelbrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom);"
-    "int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, size_t iterations, size_t samples);"
+    "int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, double source_x, double source_y, double source_zoom, size_t iterations, size_t samples);"
 )
 
 ffibuilder.set_source(
@@ -46,9 +46,10 @@ ffibuilder.set_source(
         return 0;
     }
 
-    int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, size_t iterations, size_t samples) {
+    int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, double source_x, double source_y, double source_zoom, size_t iterations, size_t samples) {
         zoom = pow(2, zoom) * height;
         spot_zoom = pow(2, -spot_zoom);
+        source_zoom = pow(2, -source_zoom);
         for (size_t i = 0; i < width * height * 3; i++) {
             out[i] = 0;
         }
@@ -57,8 +58,8 @@ ffibuilder.set_source(
         for (size_t j = 0; j < samples; j++) {
             double cx = gauss() * spot_zoom + spot_x;
             double cy = gauss() * spot_zoom + spot_y;
-            double x_ = 0;
-            double y  = 0;
+            double x_ = gauss() * source_zoom + source_x;
+            double y  = gauss() * source_zoom + source_y;
             size_t i;
             for (i = 0; i < iterations; i++) {
                 double x = x_;
@@ -81,18 +82,29 @@ ffibuilder.set_source(
                         double *red   = out + 0 + 3 * ((int)index_x + ((int)index_y) * width);
                         double *green = out + 1 + 3 * ((int)index_x + ((int)index_y) * width);
                         double *blue  = out + 2 + 3 * ((int)index_x + ((int)index_y) * width);
+                        double r = 0;
+                        double g = 0;
+                        double b = 0;
                         if (k % 3 == 0) {
-                            *red += 1;
+                            r += 1;
                         }
                         else if (k % 3 == 1) {
-                            *green += 1;
+                            g += 1;
                         }
                         else {
-                            *blue += 1;
+                            b += 1;
                         }
-                        *red += 0.3 * ((k + 1) % 5);
-                        *green += 0.1 * (k % 7);
-                        *blue += 0.2 * (k % 11);
+                        r += 0.3 * ((k + 1) % 5);
+                        g += 0.1 * (k % 7);
+                        b += 0.2 * (k % 11);
+
+                        r *= tanh(k * 0.007);
+                        g *= tanh(k * 0.01);
+                        b *= tanh(k * 0.02);
+
+                        *red += r;
+                        *green += g;
+                        *blue += b;
                     }
                 }
             }
