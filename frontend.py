@@ -7,7 +7,7 @@ from scipy.misc import imsave, toimage
 from _routines import ffi, lib
 
 
-BATCH_SIZE = 1000000 * 30 * 6
+BATCH_SIZE = 1000000 * 200
 
 
 def iterate(args):
@@ -57,20 +57,20 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
 
 
 def render_image():
-    width = 192 * 10
-    height = 108 * 10
+    width = 192 * 1
+    height = 108 * 1
     # width, height = height, width
-    center_x = -0.125
-    center_y = -0.92
-    zoom = 2
-    spot_x = -0.125
-    spot_y = -0.8
-    spot_zoom = 2
+    center_x = -0.165965
+    center_y = -1.039991
+    zoom = 21
+    spot_x = center_x
+    spot_y = center_y
+    spot_zoom = zoom
     source_x = 0
     source_y = 0
     source_zoom = float("inf")
-    iterations = 400
-    samples = BATCH_SIZE * 16 * 10
+    iterations = 1000
+    samples = BATCH_SIZE * 16 * 2
     im = iterate_parallel(
         width, height,
         center_x, center_y, zoom,
@@ -92,36 +92,34 @@ def render_image():
 
 
 def render_animation():
-    width = 192 * 3
-    height = 108 * 3
-    center_x = -0.5
-    center_y = 0
+    # width = 128 * 10
+    # height = 72 * 10
+    width = 854
+    height = 480
+    center_x = -0.165965
+    center_y = -1.039991
     zoom = -1.5
-    spot_x = -0.7
-    spot_y = 0.2
-    spot_zoom = 3
-    source_x = 1
-    source_y = 0.2
-    source_zoom = 3
-    iterations = 200
-    samples = BATCH_SIZE * 16 * 2
-    normalizer = 15 / samples
+    spot_x = center_x
+    spot_y = center_y
+    spot_zoom = -1.5
+    source_x = 0
+    source_y = 0
+    source_zoom = float("inf")
+    iterations = 1000
+    samples = BATCH_SIZE * 16 * 5
+    normalizer = 70 / samples
+    # normalizer *= 0.5
 
-    num_frames = 1000
+    num_frames = 2000
     for n in range(num_frames):
-        if isfile("terminate.txt"):
-            print "Terminating animation rendering..."
-            exit()
-        filename = "frames/out_%03d.png" % n
+        filename = "frames/out_%04d.tiff" % n
+        dumpname = "frames/out_%04d.dump" % n
         if isfile(filename):
-            print "Skipping frame %03d." % n
+            print "Skipping frame %04d." % n
             continue
         t = n / (num_frames - 1)
-        t *= 2*pi
-        spot_x = cos(7 * t) * (0.5 + 0.5 * cos(t)) * 0.8 - 0.5
-        spot_y = sin(7 * t) * (0.5 + 0.5 * cos(t)) * 0.8 + 0.07
-        source_x = sin(5 * t) * (0.5 - 0.5 * cos(t)) * 0.8 + 0.05
-        source_y = cos(5 * t) * (0.5 - 0.5 * cos(t)) * 0.8 - 0.1
+        zoom = -2.2 + t * 22.2
+        spot_zoom = zoom - 2
         im = iterate_parallel(
             width, height,
             center_x, center_y, zoom,
@@ -129,13 +127,19 @@ def render_animation():
             source_x, source_y, source_zoom,
             iterations, samples,
         )
-        im *= normalizer
-        im = minimum(im, 1)
+        if isfile("terminate.txt"):
+            print "Terminating animation rendering..."
+            exit()
+        # pim = load(dumpname)
+        # im += pim
+        im.dump(dumpname)
+        im *= normalizer * (1 + 2 * t*t)
+        im = im ** 0.5
+        im = tanh(exp(im) - 1)
         toimage(im).save(filename)
-        # TODO: Dump the raw data too.
-        print "Frame %03d done." % n
+        print "Frame %04d done." % n
 
 if __name__ == '__main__':
     print "Using {} cores to render a Buddhabrot...".format(cpu_count())
-    render_image()
-    # render_animation()
+    # render_image()
+    render_animation()
