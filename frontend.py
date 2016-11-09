@@ -7,14 +7,14 @@ from scipy.misc import imsave, toimage
 from _routines import ffi, lib
 
 
-BATCH_SIZE = 1000000 * 200
+BATCH_SIZE = 1000000 * 1
 
 
 def iterate(args):
     seed, width, height, center_x, center_y, zoom, spot_x, spot_y, spot_zoom, source_x, source_y, source_zoom, iterations, samples = args
     lib.srand(seed)
     buf = ffi.new("double[]", 3 * width * height)
-    lib.buddhabrot(buf, width, height, center_x, center_y, zoom, spot_x, spot_y, spot_zoom, source_x, source_y, source_zoom, iterations, samples)
+    lib.buddhabrot(buf, width, height, center_x, center_y, zoom, spot_x, spot_y, spot_zoom, source_x, source_y, source_zoom, iterations, samples, 1)
     im = array(list(buf)).reshape(height, width, 3)
     return im
 
@@ -25,6 +25,7 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
     pool_size = cpu_count()
     pool = Pool(pool_size)
     batch_num = 0
+    base_seed = randint(100000000)
     while samples > 0:
         if isfile("terminate.txt"):
             print "Terminating..."
@@ -32,7 +33,7 @@ def iterate_parallel(width, height, center_x, center_y, zoom, spot_x, spot_y, sp
             pool.join()
             return im
         ims = pool.map(iterate, zip(
-            list(arange(pool_size) + batch_num * pool_size),
+            list(arange(pool_size) + batch_num * pool_size + base_seed),
             [width] * pool_size,
             [height] * pool_size,
             [center_x] * pool_size,
@@ -60,17 +61,19 @@ def render_image():
     width = 192 * 1
     height = 108 * 1
     # width, height = height, width
-    center_x = -0.165965
-    center_y = -1.039991
-    zoom = 21
-    spot_x = center_x
-    spot_y = center_y
-    spot_zoom = zoom
+    center_x = 0
+    center_y = 0
+    zoom = 0
+    spot_x = -0.747
+    spot_y = -0.08
+    spot_zoom = 10
+    # spot_zoom = float("inf")
     source_x = 0
     source_y = 0
-    source_zoom = float("inf")
-    iterations = 1000
-    samples = BATCH_SIZE * 16 * 2
+    source_zoom = 0
+    # source_zoom = float("inf")
+    iterations = 40
+    samples = BATCH_SIZE * 16 * 1
     im = iterate_parallel(
         width, height,
         center_x, center_y, zoom,
@@ -141,5 +144,5 @@ def render_animation():
 
 if __name__ == '__main__':
     print "Using {} cores to render a Buddhabrot...".format(cpu_count())
-    # render_image()
-    render_animation()
+    render_image()
+    # render_animation()
