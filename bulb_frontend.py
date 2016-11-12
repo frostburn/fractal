@@ -63,23 +63,23 @@ def iterate_parallel(width, height, center_x, center_y, center_z, zoom, spot_x, 
 def render_image():
     width = 192 * 10
     height = 108 * 10
-    width, height = height, width
-    center_x = 0.6
-    center_y = -0.5
+    # width, height = height, width
+    center_x = 0.148
+    center_y = -0.98
     center_z = 0
-    zoom = -1
-    spot_x = 0.5
-    spot_y = 0.3
-    spot_z = -0.4
-    spot_zoom = 3
+    zoom = 4
+    spot_x = -1
+    spot_y = 0
+    spot_z = 0.148
+    spot_zoom = 5.5
     # spot_zoom = float("inf")
     source_x = 0
     source_y = 0
     source_z = 0
     source_zoom = float("inf")
     # source_zoom = 0
-    iterations = 6 * 5
-    samples = BATCH_SIZE * 16 * 6
+    iterations = 5 * 6 + 1
+    samples = BATCH_SIZE * 16 * 3
     im = iterate_parallel(
         width, height,
         center_x, center_y, center_z, zoom,
@@ -87,13 +87,14 @@ def render_image():
         source_x, source_y, source_z, source_zoom,
         iterations, samples,
     )
-    im = im.swapaxes(0, 1)
-    pim = load("out.dump")
-    im += pim
+    # im = im.swapaxes(0, 1)
+    # pim = load("out.dump")
+    # im += pim
     im.dump("out.dump")
+    print im.max()
     im /= im.max()
     im = im ** 0.5
-    im *= 0.7
+    im *= 1.0
     im = tanh(exp(im) - 1)
     im /= im.max()
 

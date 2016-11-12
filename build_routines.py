@@ -143,49 +143,51 @@ ffibuilder.set_source(
             double x = gauss() * source_zoom + source_x;
             double y = gauss() * source_zoom + source_y;
             double z = gauss() * source_zoom + source_z;
-            for (size_t i = 0; i < iterations; i++) {
-                double x2 = x*x;
-                double y2 = y*y;
-                double rxy = x2 + y2;
-                // double r = rxy + z*z;  // For bailout.
 
-                // Special case for n=6
-                double x4 = x2 * x2;
-                double x6 = x2 * x4;
-                double y4 = y2 * y2;
-                double y6 = y2 * y4;
-                double z2 = z * z;
-                double z4 = z2 * z2;
-                if (rxy > 0.000001) {
-                    double q = pow(rxy, -2.5);
-                    y = 4*x*y*(3*x4 - 10*x2*y2 + 3*y4)*z*(x2 + y2 - 3*z2)*(3*(x2 + y2) - z2) * q + cy;
-                    x = 2*(x6 - 15*x4*y2 + 15*x2*y4 - y6)*z*(x2 + y2 - 3*z2)*(3*(x2 + y2) - z2) * q + cx;
+            double n = 7;
+            for (size_t i = 0; i < iterations; i++) {
+                double r = sqrt(x*x + y*y + z*z);
+                if (r > 256) {
+                    break;
                 }
-                else {
-                    y = cy;
-                    x = cx;
+                double rxy = sqrt(x*x + y*y);
+                double phi = atan2(y, x);
+                double theta = atan2(rxy, z);
+
+                // The representation is ambiguous.
+                // Randomized for symmetery's sake.
+                if (rand() > RAND_MAX / 2) {
+                    theta = -theta;
+                    phi += M_PI;
                 }
-                z = -(rxy - z2)*(rxy * (rxy - 14*z2) + z4) + cz;
+
+                phi *= n;
+                theta *= n;
+                r = pow(r, n);
+
+                x = r * sin(theta) * cos(phi) + cx;
+                y = r * sin(theta) * sin(phi) + cy;
+                z = r * cos(theta) + cz;
 
                 if (i == 0) {
                     continue;
                 }
                 // TODO: Rotations that make the center coordinates matter.
-                double index_x = (0.98 * x - 0.19 * z) * zoom + x_shift;
-                double index_y = (0.19 * y + 0.98 * z) * zoom + y_shift;
+                double index_x = (z - 0.13 * y) * zoom + x_shift;
+                double index_y = (x + 0.13 * y) * zoom + y_shift;
                 if (index_x >= 0 && index_x < width && index_y >= 0 && index_y < height) {
                     double *red   = out + 0 + 3 * ((int)index_x + ((int)index_y) * width);
                     double *green = out + 1 + 3 * ((int)index_x + ((int)index_y) * width);
                     double *blue  = out + 2 + 3 * ((int)index_x + ((int)index_y) * width);
-                    double r = 0;
+                    double r_ = 0;
                     double g = 0;
                     double b = 0;
                     size_t i6 = i % 6;
                     if (i6 == 0) {
-                        r += 1;
+                        r_ += 1;
                     }
                     else if (i6 == 1) {
-                        r += 0.5;
+                        r_ += 0.5;
                         g += 0.5;
                     }
                     else if (i6 == 2) {
@@ -200,19 +202,16 @@ ffibuilder.set_source(
                     }
                     else {
                         b += 0.5;
-                        r += 0.5;
+                        r_ += 0.5;
                     }
 
-                    double magnitude = log(1 + x*x + y*y + z*z);
+                    /*double magnitude = log(1 + x*x + y*y + z*z);
 
                     r *= magnitude / (5.0 + i);
                     g *= magnitude / (4.0 + i);
-                    b *= magnitude / (3.0 + i);
-                    if (j == -1) {
-                        printf("%g, %g, %g, %g\\n", magnitude, r, g, b);
-                    }
+                    b *= magnitude / (3.0 + i);*/
 
-                    *red += r;
+                    *red += r_;
                     *green += g;
                     *blue += b;
                 }
