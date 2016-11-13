@@ -6,7 +6,17 @@ ffibuilder.cdef(
     "void srand(unsigned int seed);"
     "int mandelbrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom);"
     "int buddhabrot(double *out, size_t width, size_t height, double center_x, double center_y, double zoom, double spot_x, double spot_y, double spot_zoom, double source_x, double source_y, double source_zoom, size_t iterations, size_t samples, int interior);"
-    "int buddhabulb(double *out, size_t width, size_t height, double center_x, double center_y, double center_z, double zoom, double spot_x, double spot_y, double spot_z, double spot_zoom, double source_x, double source_y, double source_z, double source_zoom, size_t iterations, size_t samples);"
+    """
+        int buddhabulb(
+        double *out, int width, int height,
+        double proj_xx, double proj_yx, double proj_zx,
+        double proj_xy, double proj_yy, double proj_zy,
+        double shift_x, double shift_y,
+        double spot_x, double spot_y, double spot_z, double spot_zoom,
+        double source_x, double source_y, double source_z, double source_zoom,
+        size_t iterations, size_t samples
+    );
+    """
 )
 
 ffibuilder.set_source(
@@ -120,17 +130,28 @@ ffibuilder.set_source(
     }
 
     int buddhabulb(
-        double *out, size_t width, size_t height,
-        double center_x, double center_y, double center_z, double zoom,
+        double *out, int width, int height,
+        double proj_xx, double proj_yx, double proj_zx,
+        double proj_xy, double proj_yy, double proj_zy,
+        double shift_x, double shift_y,
         double spot_x, double spot_y, double spot_z, double spot_zoom,
         double source_x, double source_y, double source_z, double source_zoom,
         size_t iterations, size_t samples
     ) {
-        zoom = pow(2, zoom) * height;
+        // Image coordinates range from (-0.5, 0.5) for y' increasing towards the top of the image.
+        // Range of x' determined by aspect ration.
+        proj_xx *= height;
+        proj_yx *= height;
+        proj_zx *= height;
+        proj_xy *= -height;
+        proj_yy *= -height;
+        proj_zy *= -height;
+
+        shift_x = 0.5 * width + shift_x * height;
+        shift_y = 0.5 * height - shift_y * height;
+
         spot_zoom = pow(2, -spot_zoom);
         source_zoom = pow(2, -source_zoom);
-        double x_shift = 0.5 * width  - center_x * zoom;
-        double y_shift = 0.5 * height - center_y * zoom;
         for (size_t i = 0; i < width * height * 3; i++) {
             out[i] = 0;
         }
@@ -172,9 +193,9 @@ ffibuilder.set_source(
                 if (i == 0) {
                     continue;
                 }
-                // TODO: Rotations that make the center coordinates matter.
-                double index_x = (z - 0.13 * y) * zoom + x_shift;
-                double index_y = (x + 0.13 * y) * zoom + y_shift;
+                // Projects (x, y, z) to image coordinates (x', y').
+                double index_x = x * proj_xx + y * proj_yx + z * proj_zx + shift_x;
+                double index_y = x * proj_xy + y * proj_yy + z * proj_zy + shift_y;
                 if (index_x >= 0 && index_x < width && index_y >= 0 && index_y < height) {
                     double *red   = out + 0 + 3 * ((int)index_x + ((int)index_y) * width);
                     double *green = out + 1 + 3 * ((int)index_x + ((int)index_y) * width);
